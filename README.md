@@ -12,7 +12,7 @@ Command line args (and default vals):
 * start     = ''    # Force all generated names to start with a certain term.
 * dump      = ''    # Dump the mappings between groupings of a -> b in the markov list to a file
 * out       = 'generatednames.txt' # Name of the output file we will write results to.
-* 
+ 
 
 # Purpose
 
