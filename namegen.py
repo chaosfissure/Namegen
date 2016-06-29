@@ -158,10 +158,16 @@ def GenerateName(chainDict, minlen, maxlen, start, useLastChar=True):
 	global STRING_BASE
 	global STRING_END
 	global ALLTERMS
-	
+				
 	def RandomFromCollection(c):
-		randint = random.randint
-		return c[randint(0, len(c)-1)]
+		return c[random.randint(0, len(c)-1)]
+		
+	def RandomStartingTermFromLetter(d, letter):
+		possibilities = []
+		for allthings in d:
+			if type(allthings) is str and letter == allthings[0]:
+				possibilities.append(allthings)
+		return RandomFromCollection(possibilities)	
 	
 	def RandomFromChainDict(d, letter):
 		transitions = d[letter]
@@ -172,22 +178,19 @@ def GenerateName(chainDict, minlen, maxlen, start, useLastChar=True):
 		if len(transitions) == 0:
 			return None
 		return RandomFromCollection(transitions)
-		raw_input()
 	
 	name = ''
+	
+	if start != '':
+		startingLetter = RandomFromCollection(start)
+		name = RandomStartingTermFromLetter(chainDict, startingLetter)
+	else:
+		name = RandomFromChainDict(chainDict, STRING_BASE)
 			
-	# Start with something random.
-	if len(start) == 1 and start[0] == '': name = RandomFromChainDict(chainDict, STRING_BASE)
-	else:                                  name = RandomFromCollection(chainDict, start)
-		
-	print name
-	
 	lastTerm = name if not useLastChar else name[-1]
-	
-	print name
 		
 	while len(name) < maxlen:
-	
+		
 		# If we pass the length requirements and reach the end, then quit the loop.
 		if len(name) > minlen and name[-1] == STRING_END:
 			break	
@@ -212,9 +215,9 @@ def GenerateName(chainDict, minlen, maxlen, start, useLastChar=True):
 			name += term
 			lastTerm = term if not useLastChar else name[-1]
 			
-			print name
 		else:
 			break
+			
 	return name.strip(STRING_BASE+STRING_END)
 		
 if __name__ == '__main__':
@@ -242,11 +245,7 @@ if __name__ == '__main__':
 					params[param] = int(keyValue[1])
 				else:
 					params[param] = keyValue[1]
-	
-
-	# Split apart starting terms by commas
-	params['start'] = params['start'].split(',')
-	
+		
 	# Replay the params so we can see what they are.
 	print 'Param dump:'
 	for param in params:
@@ -279,10 +278,10 @@ if __name__ == '__main__':
 	with open(params['file'], 'r') as f: filedata = [x.lstrip().rstrip() for x in f.readlines()]
 	filedata = [x.lower() for x in filedata if x != '']
 	
-	dictionary = IndividualMarkov(filedata)
+	#dictionary = IndividualMarkov(filedata)
 	#dictionary = SplitAtTerms(filedata, [x for x in 'aeiou'])
 	#dictionary = SplitAfterTerms(filedata, [x for x in 'aeiou'])
-	#dictionary = SplitBeforeTerms(filedata, [x for x in 'aeiou'])
+	dictionary = SplitBeforeTerms(filedata, [x for x in 'aeiou'])
 	
 	
 	if params['dump'] != '':
