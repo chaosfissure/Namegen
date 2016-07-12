@@ -9,7 +9,7 @@ Command line args (and default vals):
 * file      = ''    # What's the name of the file that we read names from?
 * filter    = ''    # What is an existing list of names we do NOT want to generate?
 * leven     = 1     # Minimum Levenshtein distance between the source name and generated names
-* start     = ''    # Force all generated names to start with a certain term.
+* start     = ''    # Force all generated names to start with a certain term. Each letter in the string is considered a term.
 * dump      = ''    # Dump the mappings between groupings of a -> b in the markov list to a file
 * out       = 'generatednames.txt' # Name of the output file we will write results to.
  
