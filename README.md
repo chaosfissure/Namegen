@@ -8,7 +8,7 @@ This was more of an experimental script to try using markov chains with syllable
 ```
 name1
   <whitespace> <space-delimited syllabification of name 1>
-		<whitespace> <alternate space-delimited syllabification of name 1>
+  <whitespace> <alternate space-delimited syllabification of name 1>
 name2
   <ect...>
 ```
