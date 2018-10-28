@@ -216,7 +216,7 @@ class Transitions(object):
 	def __str__(self):
 
 		return '\n'.join([
-			self.value,
+			self._value,
 			'\tTo:  \n\t\t{}'.format(self._sources['to']),
 			'\tFrom:\n\t\t{}'.format(self._sources['from']),
 		])
