@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, operator, argparse
+import sys, operator, argparse, os
 from collections import defaultdict, deque
 
 from namegen_utils import *
@@ -113,7 +113,7 @@ class AdaptedCorpus(object):
 		# Process all corpus terms and input terms ----------------------------
 		print('Removing terms with non-word symbols, cleaning up remaining terms...', end=' ')
 
-		for word, syllable_groups in YieldAllFrom(iter(canned_words.items()), iter(AdaptedCorpus.PARSED_NAMES.items())):
+		for word, syllable_groups in YieldAllFrom(canned_words.items(), AdaptedCorpus.PARSED_NAMES.items()):
 
 			filtered_name = FilterLetters(word)
 
@@ -122,7 +122,7 @@ class AdaptedCorpus(object):
 
 				pronunciations = []
 				for syllable_group in syllable_groups:
-					pronunciations.append(list(map(RemoveNumbers, syllable_group)))
+					pronunciations.append([RemoveNumbers(x) for x in syllable_group])
 
 				AdaptedCorpus.WORDS[filtered_name] = pronunciations
 
@@ -163,8 +163,7 @@ class Node(object):
 		'''Given a list of syllables, yield any valid sound that matches the syllable combination.'''
 
 		if not rest:
-			for string in self.strings:
-				yield string
+			yield from self.strings
 
 		else:
 			first = rest[0].upper()
@@ -204,7 +203,7 @@ class Transcriber(AdaptedCorpus):
 		print('done!')
 
 	def Transcribe(self, syllables):
-		return [x for x in self._associations.YieldSolutions(syllables)]
+		return list(self._associations.YieldSolutions(syllables))
 
 # -------------------------------------------------------------------------------------------------
 # ImpossibleFilter
@@ -347,13 +346,14 @@ class SoundManager():
 		self._syllables = syllables
 
 		transcribed = []
-
+		
 		for grouping in ChunkSyllables(syllables):
 
 			wordparts = []
 			for element in grouping:
 
 				results = transcriber.Transcribe(element)
+
 				if not results:
 					wordparts = []
 					break
@@ -437,9 +437,14 @@ class SoundManager():
 
 	def Activate(self):
 		'''Return "focus" to this element by displaying the syllable list of this word.'''
-		print('\nLooking at {} ( '.format(''.join(self._syllables)), self._syllables, ')')
+		print('\nLooking at {} '.format(''.join(self._syllables)), self._syllables)
 		self._history.ResetPosition()
 		self._DisplaySounds()
+		
+	def Syllables(self):
+		''' Returns the syllables that were generated for this entry. '''
+		return self._syllables
+		
 
 # -------------------------------------------------------------------------------------------------
 # InteractiveInterface
@@ -478,8 +483,9 @@ class InteractiveInterface(AdaptedCorpus):
 			self._seenSyllables.add(syllables)
 
 			if self._impossible.HasImpossibleCombinations(syllables):
-				print(f'\tIgnoring {syllables} due to impossible/unlikely syllable combination.')
-				continue
+				#print(f'\tIgnoring {syllables} due to impossible/unlikely syllable combination.')
+				#continue
+				print(f'\tHas unmapped/impossible/unlikely syllable combinations:\n\t\t{syllables}')
 
 			self._history.AddHistory(SoundManager(syllables, self._transcriber, self._impossible))
 			return
@@ -517,7 +523,7 @@ class InteractiveInterface(AdaptedCorpus):
 
 				# Help menu ---------------------------------------------------
 				if entry and entry[0] in '?hH':
-					entry = input('Enter option ([n]ext, [p]revious, <return>) => ').strip().lower()
+					entry = input('([n]ext, [p]revious, [s]ave,  <return>) => ').strip().lower()
 
 				# Prompt for the next input -----------------------------------
 				else:
@@ -536,6 +542,26 @@ class InteractiveInterface(AdaptedCorpus):
 				# Move to next term -------------------------------------------
 				elif entry[0] == 'n':
 					self._Next()
+					
+				# Save something to a file ------------------------------------
+				elif entry[0] == 's':
+				
+					syllables = self._history.Current().Syllables()
+					actual_spelling = input(f'Enter actual spelling of {syllables}: => ').rstrip()
+					if actual_spelling:
+					
+						save_to = input('Save to what file? => ').rstrip()
+						if save_to:
+				
+							if not save_to.endswith('.txt'):
+								save_to += '.txt'
+								
+							save_to = os.path.join('generated', save_to)
+						
+							if os.path.exists(save_to) or input(f'Create file "{save_to}"?').strip()[0] in 'yY':
+								with open(save_to, 'a') as f:
+									f.write('\n'   + actual_spelling.capitalize())
+									f.write('\n\t' + ' '.join(syllables))
 
 		# Keyboard abort, prevent random fortran runtime errors from cmudict --
 		except KeyboardInterrupt as e:
@@ -571,8 +597,6 @@ if __name__ == '__main__':
 
 	if args.minlen >= args.maxlen or args.minlen < 1 or args.maxlen < 1:
 		raise ValueError('The --minlen and --maxlen parameters must be larger than zero and a valid increasing range from minlen to maxlen')
-
-	entries = [x.lower() for x in YieldNames(args.input)]
 
 	iface = InteractiveInterface(args)
 	iface.Display()

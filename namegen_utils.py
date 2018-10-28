@@ -1,13 +1,14 @@
 import random
 from collections import defaultdict, deque
 
-LOWERCASE        = 'abcdefghijklmnopqrstuvwxyz'
-UPPERCASE        = LOWERCASE.upper()
-VALID_LETTERS    = LOWERCASE + UPPERCASE
-VALID_LETTER_SET = set(VALID_LETTERS)
-NUMBERS          = set('0123456789')
-VOWEL_SET        = set('aeiouy')
-COMMON_LETTERS   = set('etaoinshrdlu')
+LOWERCASE          = 'abcdefghijklmnopqrstuvwxyz'
+UPPERCASE          = LOWERCASE.upper()
+VALID_LETTERS      = LOWERCASE + UPPERCASE
+VALID_LETTER_SET   = set(VALID_LETTERS)
+NUMBERS            = set('0123456789')
+VOWEL_SET          = set('aeiouy')
+COMMON_LETTERS     = set('etaoinshrdlu')
+LETTERS_AND_SPACES = VALID_LETTER_SET | set(' ')
 
 def Chunk(l, s):
 	'''Return sublists of elements grouped in groups of size s.'''
@@ -23,6 +24,9 @@ def RemoveNumbers(word):
 def FilterLetters(word):
 	'''Strip all elements from the input word that aren't in VALID_LETTER_SET.'''
 	return ''.join(letter for letter in word if letter in VALID_LETTER_SET)
+	
+def FilterWord(word, whitelist):
+	return ''.join(letter for letter in word if letter in whitelist)
 
 
 def ValidLines(fname):
@@ -87,16 +91,23 @@ def ObtainSyllables(files, includeEmpty=False):
 	'''
 
 	words = defaultdict(set)
-
+	word_to_file_map = defaultdict(list)
+	
 	for f in files:
 
 		lastWord = None
 		for line in ValidLines(f):
 
 			if line.strip() == line:
+			
+				word_to_file_map[line].append(f)
+				
+				if len(word_to_file_map[line]) > 1:
+					print(f'Saw the name {line} multiple times:', word_to_file_map[line])
+				elif includeEmpty:
+					words[line] = set()
+					
 				lastWord = line
-				if includeEmpty:
-					words[lastWord] = set()
 
 			else:
 				words[lastWord].add(tuple(line.strip().split(' ')))
@@ -219,14 +230,46 @@ class MarkovChainHandler(object):
 	def __init__(self, params):
 
 		self._connections = { None : Transitions(None) }
-		self._args = params
+		self._args  = params
+		self._start = None
 
 
 	def Debug(self):
 		''' Show all connections that the MarkovChainHandler has registered. '''
 		for name, obj in self._connections.items():
 			print(f'For object called "{name}": \n{obj}')
+			
+	def _CacheStartingTerms(self):
+		'''
+		Rather than continuously try to find a valid starting term, pre-populate a list with valid terms
+		so we can simply draw from it during each name generation.
+		'''
+		
+		# Don't bother trying to recalculate this if we previously have done so.
+		if self._start or not self._args.start:
+			return
+		
+		collection = []
+		for prefix in [x.lower() for x in self._args.start]:
+			collection.extend([x for x in self._connections if x and x.startswith(prefix)])
 
+		if not collection:
+			
+			# Show what terms we actually have populated.  If inputs to this change (for instance,
+			# random splitting of input terms), then the output here probably won't make as much
+			# sense.
+				
+			tmp = defaultdict(list)
+			for elem in map(str, self._connections):
+				tmp[elem[0]].append(elem)
+					
+			for k in sorted(tmp):
+				print(sorted(tmp[k]))
+				
+			raise ValueError(f'None of the starting terms ({self._args.start}) exist as elements in the Markov Chain handler!')
+				
+		self._start = list(collection)
+		
 
 	def UpdateTermString(self, terms):
 
@@ -254,7 +297,10 @@ class MarkovChainHandler(object):
 
 		self._connections[terms[-1]].ConnectWith(None, 'to')
 		self._connections[None].ConnectWith(terms[-1], 'from')
+		
+		# Cache starting terms based on input arguments -----------------------
 
+		self._start = None
 
 	def GenerateChain(self):
 
@@ -265,21 +311,15 @@ class MarkovChainHandler(object):
 		'''
 
 		chain = deque()
+		self._CacheStartingTerms()
 
 		# By default, start using "None" to force generations to start with terms
 		# explicitly used in the input. This can be overridden by the args constructed
 		# with this class.
 
 		starting_term = None
-		arg_start_terms = [x.lower() for x in self._args.start]
-		if self._args.start:
-
-			# Check if any of the starting terms are valid.
-			if not any(term in self._connections for term in arg_start_terms):
-				raise ValueError(f'None of the starting terms ({self._args.start}) exist as elements in the Markov Chain handler!')
-
-			valid_starting_terms = set(self._connections) & set(arg_start_terms)
-			starting_term = random.choice(list(valid_starting_terms))
+		if self._start:		
+			starting_term = random.choice(self._start)
 			chain.append((starting_term))
 
 		else:

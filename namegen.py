@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, random, argparse
+import sys, random, argparse, os
 
 from namegen_utils import *
 
@@ -95,6 +95,14 @@ def groupedvowels(what):
 	if count >= 2:
 		return True, count
 	return False, 1
+	
+def vowelconsonant(what):
+	''' Consume all substrings of vowel+consonant or consonant+vowel '''
+	
+	if len(what) > 1:
+		if (what[0] in VOWEL_SET) != (what[1] in VOWEL_SET):
+			return True, 2
+	return False, 1
 
 
 def twocommon(what):
@@ -112,11 +120,12 @@ def choose_randomly(what):
 
 
 METHOD_MAPPING = {
-	'letters'         : letters,
-	'eachvowel'       : eachvowel,
-	'groupedvowels'   : groupedvowels,
-	'twocommon'       : twocommon,
-	'choose_randomly' : choose_randomly,
+	'letters'        : letters,
+	'eachvowel'      : eachvowel,
+	'groupedvowels'  : groupedvowels,
+	'opposing'       : vowelconsonant,
+	'twocommon'      : twocommon,
+	'random'         : choose_randomly,
 }
 
 
@@ -155,23 +164,40 @@ if __name__ == '__main__':
 
 	args.method = METHOD_MAPPING[args.method]
 
-	entries = [x.lower() for x in YieldNames(args.input)]
+	entries = [FilterWord(x, LETTERS_AND_SPACES) for x in YieldNames(args.input)]
 
 	chain = MarkovChainHandler(args)
 	for entry in PartitionGroup(entries, args.method, args.split):
 		chain.UpdateTermString(entry)
 
-	seen = set(entries)
+	seen = set([x.capitalize() for x in entries])
 
-	while 1:
-		generated = chain.GenerateChain()
+	# Terminate generation if we don't see anything new after a certain number of name generations.
+	TERMINATION_COUNT = 2048
+	terminate_after   = TERMINATION_COUNT
+	
+	while terminate_after:
+	
+		generated = chain.GenerateChain()	
 		if generated:
-			stringified = ''.join(generated)
+		
+			stringified = ''.join(generated).strip().capitalize()
+			
 			if stringified not in seen:
+			
+				terminate_after = TERMINATION_COUNT
 				seen.add(stringified)
 
-				stringified = stringified.capitalize()
 				aligned     = '{:<' + str(args.maxlen + 1) + '}'
 				show_name   = '{} =>'.format(aligned.format(stringified))
 
-				input(show_name)
+				save_to = input(show_name).rstrip()
+				if save_to:
+					save_to = os.path.join('generated', save_to)
+					save_to += ['.txt', ''][save_to.endswith('.txt')]
+
+					if os.path.exists(save_to) or input(f'Create file "{save_to}"?').strip()[0] in 'yY':
+						with open(save_to, 'a') as f:
+							f.write('\n' + stringified)
+			else:
+				terminate_after -= 1
