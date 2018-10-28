@@ -215,11 +215,26 @@ class Transitions(object):
 
 	def __str__(self):
 
-		return '\n'.join([
-			self._value,
-			'\tTo:  \n\t\t{}'.format(self._sources['to']),
-			'\tFrom:\n\t\t{}'.format(self._sources['from']),
-		])
+		'''
+		Convert the object into a string that helps us understand what this means.
+		Since we have "None" values, there are some normally extraneous uses of str conversions that are required.
+		pprint.pformat doesn't like to align nicely, so I'm shipping my own formatting instead.
+		'''
+		
+		rep = [f'Transitions object representing [{self._value}]']
+		rep.append('{')
+		for k, v in self._sources.items():
+			fmt_size = max(len(str(x)) for x in v) + 2 # Account for quotes around the word
+			rep.append(f'\t{k}:')
+			for letter, count in v.items():
+			
+				rep.append('\t\t{} : {}'.format(
+					('{:>' + str(fmt_size) + '}').format('"' + str(letter) + '"'),
+					count))
+		
+		rep.append('}')
+	
+		return '\n'.join(rep)
 
 
 # -------------------------------------------------------------------------------------------------
@@ -236,8 +251,10 @@ class MarkovChainHandler(object):
 
 	def Debug(self):
 		''' Show all connections that the MarkovChainHandler has registered. '''
-		for name, obj in self._connections.items():
-			print(f'For object called "{name}": \n{obj}')
+		
+		# Sorting with actual "None" values in the data requires some obnoxious workarounds.)
+		for name, actual in sorted([(str(x), x) for x in self._connections]):
+			print(self._connections[actual], '\n')
 			
 	def _CacheStartingTerms(self):
 		'''
