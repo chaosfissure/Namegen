@@ -7,7 +7,7 @@ def Cleanup(fname):
 	
 	names_and_syls = { k.capitalize() : v for k, v in ObtainSyllables([fname], True).items() }
 	
-	with open(fname, 'w') as f:
+	with open(fname, 'w', encoding="utf8") as f:
 		for name in sorted(names_and_syls):
 			f.write(f'{name}\n')
 			for syllables in sorted(names_and_syls[name]):
