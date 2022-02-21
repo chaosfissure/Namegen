@@ -559,7 +559,7 @@ class InteractiveInterface(AdaptedCorpus):
 							save_to = os.path.join('generated', save_to)
 						
 							if os.path.exists(save_to) or input(f'Create file "{save_to}"?').strip()[0] in 'yY':
-								with open(save_to, 'a') as f:
+								with open(save_to, 'a', encoding="utf8") as f:
 									f.write('\n'   + actual_spelling.capitalize())
 									f.write('\n\t' + ' '.join(syllables))
 

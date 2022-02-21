@@ -197,7 +197,7 @@ if __name__ == '__main__':
 					save_to += ['.txt', ''][save_to.endswith('.txt')]
 
 					if os.path.exists(save_to) or input(f'Create file "{save_to}"?').strip()[0] in 'yY':
-						with open(save_to, 'a') as f:
+						with open(save_to, 'a', encoding = "utf8") as f:
 							f.write('\n' + stringified)
 			else:
 				terminate_after -= 1

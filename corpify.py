@@ -12,7 +12,7 @@ def RemoveNumbers(word):
 	
 def ValidLines(fname):
 	'''Return all non-whitespace lines in a file.'''
-	with open(fname, 'r') as f:
+	with open(fname, 'r', encoding="utf8") as f:
 		for each_line in f:
 			stripped = each_line.rstrip()
 			if stripped:
@@ -151,7 +151,7 @@ def SaveToFile(data, fname):
 				stringify = RemoveNumbers(' '.join(entry))
 				final_strings.append(f'\t{stringify}\n')
 			
-	with open(fname, 'w') as f:
+	with open(fname, 'w', encoding="utf8") as f:
 		for elem in final_strings:
 			f.write(elem)
 	

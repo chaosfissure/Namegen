@@ -35,7 +35,7 @@ def ValidLines(fname):
 	All trailing whitespace is stripped from the entry.
 	'''
 
-	with open(fname, 'r') as f:
+	with open(fname, 'r', encoding = "utf8") as f:
 		for each_line in f:
 			stripped = each_line.rstrip()
 			if stripped:
